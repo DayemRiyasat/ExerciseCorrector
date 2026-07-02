@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FormCheck | Exercise Form Analysis</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <main class="app-shell">
+        <header class="site-header" aria-label="Primary navigation">
+            <a class="brand" href="#dashboard" aria-label="FormCheck home">
+                <span class="brand-mark">FC</span>
+                <span class="brand-text">FormCheck</span>
+            </a>
+
+            <nav class="nav-list">
+                <a href="#dashboard" class="nav-link active">Home</a>
+                <a href="#exercise-selection" class="nav-link">Analyze</a>
+                <a href="#results-dashboard" class="nav-link">Results</a>
+                <a href="#session-history" class="nav-link">History</a>
+                <a href="#model-notes" class="nav-link">Pipeline</a>
+            </nav>
+
+            <a class="header-action" href="#exercise-selection">Start now</a>
+        </header>
+
+        <div class="page-glow" aria-hidden="true"></div>
+        <div class="orb orb-one" aria-hidden="true"></div>
+        <div class="orb orb-two" aria-hidden="true"></div>
+
+        <section class="hero" id="dashboard">
+            <div class="hero-copy">
+                <div class="eyebrow">AI movement analysis in the browser</div>
+                <h1>Make your form feedback feel cinematic.</h1>
+                <p class="subtitle">Analyze webcam, video, or image input with a clean interface built for pose landmarks, rep quality, confidence, and practical coaching notes.</p>
+                <div class="hero-actions">
+                    <a class="btn btn-primary" href="#exercise-selection">Start analysis</a>
+                    <button class="btn btn-secondary" id="demo-analysis-btn" type="button">Load demo session</button>
+                </div>
+                <div class="hero-meta" aria-label="Project highlights">
+                    <span>5 exercises</span>
+                    <span>3 input modes</span>
+                    <span>Rep timeline</span>
+                </div>
+            </div>
+
+            <div class="hero-showcase" aria-label="FormCheck product preview">
+                <div class="showcase-frame main-preview">
+                    <div class="preview-toolbar">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <div class="preview-stage">
+                        <div class="motion-grid" aria-hidden="true"></div>
+                        <div class="pose-figure" aria-hidden="true">
+                            <span class="joint head"></span>
+                            <span class="joint shoulder-left"></span>
+                            <span class="joint shoulder-right"></span>
+                            <span class="joint hip-left"></span>
+                            <span class="joint hip-right"></span>
+                            <span class="joint knee-left"></span>
+                            <span class="joint knee-right"></span>
+                            <span class="joint foot-left"></span>
+                            <span class="joint foot-right"></span>
+                            <span class="bone torso"></span>
+                            <span class="bone arm-left"></span>
+                            <span class="bone arm-right"></span>
+                            <span class="bone thigh-left"></span>
+                            <span class="bone thigh-right"></span>
+                            <span class="bone shin-left"></span>
+                            <span class="bone shin-right"></span>
+                        </div>
+                        <div class="score-chip">
+                            <span>Form score</span>
+                            <strong>86</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="floating-panel readiness-card">
+                    <div class="hero-panel-header">
+                        <span>Readiness</span>
+                        <strong id="readiness-status">Waiting</strong>
+                    </div>
+                    <div class="readiness-list" id="camera-guidance-list">
+                        <div><span>Full body visible</span><strong>Check</strong></div>
+                        <div><span>Lighting</span><strong>Check</strong></div>
+                        <div><span>Camera stability</span><strong>Check</strong></div>
+                    </div>
+                </div>
+
+                <div class="floating-panel metric-preview">
+                    <span>Knee angle</span>
+                    <strong>94°</strong>
+                    <div class="mini-meter"><span style="width: 74%"></span></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section overview-grid" aria-label="Project overview">
+            <div class="overview-card">
+                <span class="mini-label">Supported</span>
+                <strong>5 exercises</strong>
+                <p>Squat, lunge, push-up, deadlift, and bicep curl.</p>
+            </div>
+            <div class="overview-card">
+                <span class="mini-label">Inputs</span>
+                <strong>3 modes</strong>
+                <p>Live webcam, uploaded video, and single-image analysis.</p>
+            </div>
+            <div class="overview-card">
+                <span class="mini-label">Output</span>
+                <strong>Explainable feedback</strong>
+                <p>Score, confidence, body-area review, metrics, and rep timeline.</p>
+            </div>
+        </section>
+
+        <section class="section" id="exercise-selection">
+            <div class="section-heading split-heading">
+                <div>
+                    <span class="step-label">Step 1</span>
+                    <h2>Choose the movement.</h2>
+                    <p>Load the exercise model before selecting webcam, video, or image analysis.</p>
+                </div>
+                <div class="section-note">Full-body framing gives the model the clearest landmarks.</div>
+            </div>
+
+            <div class="exercise-grid">
+                {% for key, exercise in exercises.items() %}
+                <button class="exercise-card" data-exercise="{{ key }}" type="button">
+                    <div class="exercise-icon">{{ exercise.short }}</div>
+                    <div>
+                        <h3>{{ exercise.label }}</h3>
+                        <p>{{ exercise.focus }}</p>
+                        <span>{{ exercise.difficulty }}</span>
+                    </div>
+                </button>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="section hidden" id="input-mode-selection">
+            <div class="section-heading split-heading">
+                <div>
+                    <span class="step-label">Step 2</span>
+                    <h2>Pick the source.</h2>
+                    <p>Run a live session or review media already captured.</p>
+                </div>
+                <div class="section-note" id="exercise-recommendation">Keep the full body visible throughout the movement.</div>
+            </div>
+            <div class="mode-buttons">
+                <button class="mode-btn" id="webcam-btn" type="button">
+                    <span class="mode-icon">Live</span>
+                    <span>Webcam</span>
+                    <span class="mode-desc">Real-time pose review</span>
+                </button>
+                <button class="mode-btn" id="video-btn" type="button">
+                    <span class="mode-icon">Video</span>
+                    <span>Video file</span>
+                    <span class="mode-desc">Upload and analyze</span>
+                </button>
+                <button class="mode-btn" id="image-btn" type="button">
+                    <span class="mode-icon">Image</span>
+                    <span>Image</span>
+                    <span class="mode-desc">Static posture check</span>
+                </button>
+            </div>
+        </section>
+
+        <section class="section hidden" id="analysis-section">
+            <div class="analysis-layout">
+                <div class="analysis-workspace">
+                    <div id="webcam-mode" class="hidden">
+                        <div class="panel-title-row">
+                            <div>
+                                <span class="mini-label">Live capture</span>
+                                <h3>Camera analysis</h3>
+                                <p>Place the full movement in frame before starting.</p>
+                            </div>
+                        </div>
+
+                        <div class="video-container">
+                            <video id="webcam" autoplay playsinline></video>
+                            <canvas id="output-canvas"></canvas>
+                            <div class="rep-counter-overlay" id="rep-counter-overlay">
+                                <div class="rep-number">0</div>
+                                <div class="rep-label">REPS</div>
+                            </div>
+                        </div>
+
+                        <div class="controls">
+                            <button id="start-webcam" class="btn btn-success" type="button">Start camera</button>
+                            <button id="stop-webcam" class="btn btn-danger hidden" type="button">Stop camera</button>
+                            <button id="reset-reps" class="btn btn-warning hidden" type="button">Reset reps</button>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="show-landmarks" checked>
+                                Show landmarks
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="video-mode" class="hidden">
+                        <div class="panel-title-row">
+                            <div>
+                                <span class="mini-label">Video upload</span>
+                                <h3>Recorded movement analysis</h3>
+                                <p>Upload a clear file and the app will sample frames throughout the movement.</p>
+                            </div>
+                        </div>
+
+                        <div class="upload-area" id="upload-area">
+                            <div class="upload-icon">Upload</div>
+                            <p>Click to upload or drag and drop</p>
+                            <p class="upload-hint">MP4, AVI, MOV. Max 100MB.</p>
+                            <input type="file" id="video-input" accept="video/*" hidden>
+                        </div>
+                        <div class="video-preview hidden" id="video-preview">
+                            <div class="video-display-container">
+                                <video id="preview-video" muted></video>
+                                <canvas id="video-output-canvas"></canvas>
+                                <div class="rep-counter-overlay" id="video-rep-counter-overlay">
+                                    <div class="rep-number">0</div>
+                                    <div class="rep-label">REPS</div>
+                                </div>
+                            </div>
+                            <div class="video-controls">
+                                <button id="analyze-video" class="btn btn-primary" type="button">Start analysis</button>
+                                <button id="pause-video" class="btn btn-warning hidden" type="button">Pause</button>
+                                <button id="resume-video" class="btn btn-success hidden" type="button">Resume</button>
+                                <button id="stop-video" class="btn btn-danger hidden" type="button">Stop</button>
+                                <button id="upload-another-video" class="btn btn-secondary hidden" type="button">Upload another video</button>
+                            </div>
+                            <div class="video-progress hidden" id="video-progress">
+                                <div class="progress-info">
+                                    <span id="progress-text">Processing: 0%</span>
+                                    <span id="progress-frames">Frame: 0 / 0</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="video-progress-fill"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="video-results" class="hidden"></div>
+                    </div>
+
+                    <div id="image-mode" class="hidden">
+                        <div class="panel-title-row">
+                            <div>
+                                <span class="mini-label">Single frame</span>
+                                <h3>Image posture analysis</h3>
+                                <p>Use a clear frame where the full posture is visible.</p>
+                            </div>
+                        </div>
+
+                        <div class="upload-area" id="image-upload-area">
+                            <div class="upload-icon">Upload</div>
+                            <p>Click to upload or drag and drop</p>
+                            <p class="upload-hint">JPG or PNG. Max 10MB.</p>
+                            <input type="file" id="image-input" accept="image/*" hidden>
+                        </div>
+                        <div class="image-preview hidden" id="image-preview">
+                            <div class="image-comparison">
+                                <div class="image-box">
+                                    <h4>Original image</h4>
+                                    <img id="original-image" alt="Original upload">
+                                </div>
+                                <div class="image-box">
+                                    <h4>Analyzed image</h4>
+                                    <canvas id="analyzed-image"></canvas>
+                                </div>
+                            </div>
+                            <div class="image-controls">
+                                <button id="analyze-image" class="btn btn-primary" type="button">Analyze posture</button>
+                                <button id="upload-another" class="btn btn-secondary" type="button">Upload another</button>
+                            </div>
+                        </div>
+                        <div id="image-results" class="hidden">
+                            <h3>Posture analysis results</h3>
+                            <div class="analysis-grid">
+                                <div class="analysis-card">
+                                    <div class="analysis-icon">Angle</div>
+                                    <div class="analysis-content">
+                                        <h4>Knee angle</h4>
+                                        <p class="analysis-value" id="knee-angle-value">-</p>
+                                        <p class="analysis-detail">Left: <span id="left-knee">-</span>° | Right: <span id="right-knee">-</span>°</p>
+                                    </div>
+                                </div>
+                                <div class="analysis-card">
+                                    <div class="analysis-icon">Hip</div>
+                                    <div class="analysis-content">
+                                        <h4>Hip angle</h4>
+                                        <p class="analysis-value" id="hip-angle-value">-</p>
+                                    </div>
+                                </div>
+                                <div class="analysis-card">
+                                    <div class="analysis-icon">Depth</div>
+                                    <div class="analysis-content">
+                                        <h4>Movement depth</h4>
+                                        <p class="analysis-value" id="depth-value">-</p>
+                                    </div>
+                                </div>
+                                <div class="analysis-card">
+                                    <div class="analysis-icon">Stance</div>
+                                    <div class="analysis-content">
+                                        <h4>Stance width</h4>
+                                        <p class="analysis-value" id="stance-value">-</p>
+                                    </div>
+                                </div>
+                                <div class="analysis-card">
+                                    <div class="analysis-icon">Back</div>
+                                    <div class="analysis-content">
+                                        <h4>Back position</h4>
+                                        <p class="analysis-value" id="back-lean-value">-</p>
+                                        <p class="analysis-detail">Lean: <span id="lean-amount">-</span>%</p>
+                                    </div>
+                                </div>
+                                <div class="analysis-card">
+                                    <div class="analysis-icon">Form</div>
+                                    <div class="analysis-content">
+                                        <h4>Overall form</h4>
+                                        <p class="analysis-value" id="overall-form">-</p>
+                                        <p class="analysis-detail">Confidence: <span id="form-confidence">-</span>%</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="status-panel" id="status-panel">
+                    <div class="status-header">
+                        <div>
+                            <span class="mini-label">Current readout</span>
+                            <h3>Analysis status</h3>
+                        </div>
+                        <span class="status-badge" id="status-badge">Waiting</span>
+                    </div>
+
+                    <div class="score-ring" aria-label="Form score">
+                        <div>
+                            <strong id="summary-score">--</strong>
+                            <span>/100</span>
+                        </div>
+                        <p id="summary-status">No analysis yet</p>
+                    </div>
+
+                    <div class="status-content">
+                        <div class="status-icon" id="status-icon">WAIT</div>
+                        <h4 id="status-message">Position yourself in frame</h4>
+                        <div class="confidence-bar">
+                            <div class="confidence-label">Confidence</div>
+                            <div class="confidence-progress">
+                                <div class="confidence-fill" id="confidence-fill" style="width: 0%"></div>
+                            </div>
+                            <div class="confidence-value" id="confidence-value">0%</div>
+                        </div>
+                    </div>
+
+                    <div class="insight-block">
+                        <h4>Why this score?</h4>
+                        <p id="explainability-text">A reason will appear after analysis.</p>
+                        <p class="muted" id="model-version-text">Model version: not loaded</p>
+                    </div>
+
+                    <div class="tips-section" id="tips-section">
+                        <h4>Tips to improve</h4>
+                        <ul id="tips-list">
+                            <li>Position yourself fully in frame</li>
+                            <li>Use steady lighting</li>
+                            <li>Keep the background simple</li>
+                        </ul>
+                    </div>
+
+                    <div class="stats-section">
+                        <h4>Session statistics</h4>
+                        <div class="stats-grid">
+                            <div class="stat-item"><div class="stat-value" id="stat-reps">0</div><div class="stat-label">Reps</div></div>
+                            <div class="stat-item"><div class="stat-value" id="stat-good">0</div><div class="stat-label">Correct</div></div>
+                            <div class="stat-item"><div class="stat-value" id="stat-bad">0</div><div class="stat-label">Review</div></div>
+                            <div class="stat-item"><div class="stat-value" id="stat-total">0</div><div class="stat-label">Total</div></div>
+                            <div class="stat-item"><div class="stat-value" id="stat-accuracy">0%</div><div class="stat-label">Accuracy</div></div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </section>
+
+        <section class="section result-panels" id="results-dashboard">
+            <div class="result-panel">
+                <div class="panel-title-row"><h3>Body-area feedback</h3><span id="summary-issue">Waiting</span></div>
+                <div class="body-feedback-list" id="body-feedback-list">
+                    <div class="empty-state">Analyze a movement to see area-specific feedback.</div>
+                </div>
+            </div>
+            <div class="result-panel">
+                <div class="panel-title-row"><h3>Angle and movement metrics</h3><span>Live values</span></div>
+                <div class="metric-grid" id="metrics-grid">
+                    <div class="empty-state">Metrics will appear when pose landmarks are detected.</div>
+                </div>
+            </div>
+            <div class="result-panel">
+                <div class="panel-title-row"><h3>Rep timeline</h3><span>Session events</span></div>
+                <div class="rep-timeline" id="rep-timeline-list">
+                    <div class="empty-state">Completed reps will appear here.</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section history-section" id="session-history">
+            <div class="section-heading split-heading">
+                <div>
+                    <span class="step-label">Progress</span>
+                    <h2>Recent sessions.</h2>
+                    <p>Saved image, video, webcam, and demo summaries appear here.</p>
+                </div>
+                <button class="btn btn-secondary" id="refresh-history-btn" type="button">Refresh history</button>
+            </div>
+            <div class="history-list" id="history-list">
+                <div class="empty-state">No saved sessions yet.</div>
+            </div>
+        </section>
+
+        <section class="section model-notes" id="model-notes">
+            <div class="section-heading">
+                <span class="step-label">How it works</span>
+                <h2>From pixels to coaching notes.</h2>
+                <p>The app detects pose landmarks, extracts exercise-specific features, classifies form, and turns the result into readable feedback.</p>
+            </div>
+            <div class="pipeline">
+                <div>Input</div>
+                <div>Pose landmarks</div>
+                <div>Feature extraction</div>
+                <div>Model and rules</div>
+                <div>Feedback</div>
+            </div>
+            <p class="disclaimer">This is an educational prototype and should not be used as medical, physiotherapy, or professional training advice.</p>
+        </section>
+
+        <div class="loading-overlay hidden" id="loading-overlay">
+            <div class="spinner"></div>
+            <p id="loading-message">Loading model...</p>
+        </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+
+</html>
