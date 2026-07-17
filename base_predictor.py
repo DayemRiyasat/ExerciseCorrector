@@ -5,6 +5,7 @@ import base64
 import gc
 import os
 from importlib import import_module
+from pathlib import Path
 
 import cv2
 import joblib
@@ -25,6 +26,7 @@ _MEDIAPIPE_CACHE = {
 
 _DRAWING_SPEC_LANDMARK = None
 _DRAWING_SPEC_CONNECTION = None
+PROJECT_ROOT = Path(__file__).resolve().parent
 
 
 def _try_load_mediapipe():
@@ -129,17 +131,22 @@ class ExercisePredictor:
         try:
             self._ensure_mediapipe()
 
-            model_path = f"exercises/{self.exercise_type}/models/{self.exercise_type}_model.h5"
-            scaler_path = f"exercises/{self.exercise_type}/models/{self.exercise_type}_scaler.pkl"
-            encoder_path = f"exercises/{self.exercise_type}/models/{self.exercise_type}_label_encoder.pkl"
+            model_dir = PROJECT_ROOT / "exercises" / self.exercise_type / "models"
+            model_path = model_dir / f"{self.exercise_type}_model.h5"
+            scaler_path = model_dir / f"{self.exercise_type}_scaler.pkl"
+            encoder_path = model_dir / f"{self.exercise_type}_label_encoder.pkl"
 
-            if not all(os.path.exists(p) for p in [model_path, scaler_path, encoder_path]):
-                print(f"Model files not found for {self.exercise_type}")
+            required_paths = [model_path, scaler_path, encoder_path]
+            missing_paths = [str(path) for path in required_paths if not path.exists()]
+            if missing_paths:
+                print(f"Model files not found for {self.exercise_type}: {missing_paths}")
                 return False
 
-            self.model = tf.keras.models.load_model(model_path)
-            self.scaler = joblib.load(scaler_path)
-            self.label_encoder = joblib.load(encoder_path)
+            # These models are only used for inference. compile=False avoids
+            # Keras/HDF5 deserialization issues from older training environments.
+            self.model = tf.keras.models.load_model(str(model_path), compile=False)
+            self.scaler = joblib.load(str(scaler_path))
+            self.label_encoder = joblib.load(str(encoder_path))
 
             self.pose = self.mp_pose.Pose(
                 static_image_mode=False,
@@ -157,6 +164,30 @@ class ExercisePredictor:
         except Exception as exc:
             print(f"Error loading model: {exc}")
             return False
+
+    def cleanup(self):
+        """Release model and MediaPipe resources when switching exercises."""
+        if self.pose is not None:
+            try:
+                self.pose.close()
+            except Exception:
+                pass
+        self.pose = None
+        self.model = None
+        self.scaler = None
+        self.label_encoder = None
+        gc.collect()
+
+    def reset_counter(self):
+        """Reset the exercise rep counter, if the exercise supports one."""
+        if self.rep_counter is not None and hasattr(self.rep_counter, "reset"):
+            self.rep_counter.reset()
+
+    def get_rep_count(self):
+        """Return the current rep count for health checks and UI state."""
+        if self.rep_counter is not None and hasattr(self.rep_counter, "rep_count"):
+            return int(self.rep_counter.rep_count)
+        return 0
 
     def calculate_angle(self, point1, point2, point3):
         """Calculate angle between three points."""
