@@ -1,7 +1,5 @@
-
 import numpy as np
 import time
-
 
 class SquatRepCounter:
     """Advanced rep counter with landmark-based tracking for squats"""
@@ -64,11 +62,7 @@ class SquatRepCounter:
             left_knee_angle = self.calculate_angle(left_hip, left_knee, left_ankle)
             right_knee_angle = self.calculate_angle(right_hip, right_knee, right_ankle)
             avg_knee_angle = (left_knee_angle + right_knee_angle) / 2
-            
-            left_depth_ok = self.check_squat_depth(left_hip, left_knee)
-            right_depth_ok = self.check_squat_depth(right_hip, right_knee)
-            depth_ok = left_depth_ok or right_depth_ok
-            
+
             form_score = self.calculate_form_score(prediction, confidence)
             self.form_scores.append(form_score)
             
@@ -95,7 +89,7 @@ class SquatRepCounter:
                 if avg_knee_angle < self.deepest_angle:
                     self.deepest_angle = avg_knee_angle
                 
-                if avg_knee_angle <= self.knee_angle_down and depth_ok:
+                if avg_knee_angle <= self.knee_angle_down:
                     self.frames_in_current_state += 1
                     if self.frames_in_current_state >= self.min_frames_in_state:
                         self.state = "bottom"
@@ -125,10 +119,12 @@ class SquatRepCounter:
                         if current_time - self.last_rep_time >= self.min_rep_interval:
                             avg_form_quality = np.mean(self.form_scores) if self.form_scores else 0
                             
-                            if avg_form_quality >= (1 - self.form_threshold):
-                                self.rep_count += 1
-                                rep_counted = True
-                                self.last_rep_time = current_time
+                            # Count the rep once the movement completes. Form quality
+                            # is reported separately (and used for scoring); it must
+                            # not gate rep counting, otherwise imperfect reps show 0.
+                            self.rep_count += 1
+                            rep_counted = True
+                            self.last_rep_time = current_time
                         
                         self.state = "standing"
                         self.deepest_angle = 180
