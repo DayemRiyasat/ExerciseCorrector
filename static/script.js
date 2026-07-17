@@ -1,5 +1,5 @@
 // FormCheck frontend controller
-// Handles exercise selection, media input, results, demo mode, and session history.
+// Handles exercise selection, media input, results, demo mode, and session history. 
 
 let selectedExercise = null;
 let selectedExerciseMeta = null;
