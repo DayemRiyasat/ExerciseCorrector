@@ -1,5 +1,5 @@
 # exercises/squat/SquatPredictor.py
-# Location: project_root/exercises/squat/SquatPredictor.py
+# Location: project_root/exercises/squat/SquatPredictor.py 
 
 from base_predictor import ExercisePredictor
 from exercises.squat.RepCounter import SquatRepCounter
