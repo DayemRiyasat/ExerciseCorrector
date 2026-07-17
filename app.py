@@ -84,6 +84,21 @@ EXERCISE_REGISTRY = {
     },
 }
 
+
+
+def public_exercise_registry():
+    """Return exercise metadata that is safe to render or send as JSON."""
+    public = {}
+    for key, exercise in EXERCISE_REGISTRY.items():
+        public[key] = {
+            "label": exercise["label"],
+            "short": exercise["short"],
+            "difficulty": exercise["difficulty"],
+            "focus": exercise["focus"],
+            "recommended_view": exercise["recommended_view"],
+        }
+    return public
+
 FEEDBACK_MESSAGES = {
     'squat': {
         'none': {
@@ -565,12 +580,12 @@ def save_session_record(exercise, mode, score, confidence, reps=0, main_issue=""
 
 @app.route("/")
 def index():
-    return render_template("index.html", exercises=EXERCISE_REGISTRY)
+    return render_template("index.html", exercises=public_exercise_registry())
 
 
 @app.route("/api/exercises", methods=["GET"])
 def list_exercises():
-    return jsonify({"success": True, "exercises": EXERCISE_REGISTRY})
+    return jsonify({"success": True, "exercises": public_exercise_registry()})
 
 
 @app.route("/api/load_model", methods=["POST"])
@@ -584,7 +599,8 @@ def load_model():
         return jsonify({"success": False, "error": "Unsupported exercise selected"}), 400
 
     if current_predictor:
-        current_predictor.cleanup()
+        if hasattr(current_predictor, "cleanup"):
+            current_predictor.cleanup()
         current_predictor = None
         gc.collect()
 
@@ -606,7 +622,7 @@ def load_model():
             "success": True,
             "message": f"{EXERCISE_REGISTRY[exercise_type]['label']} model loaded",
             "exercise": exercise_type,
-            "exercise_meta": {k: v for k, v in EXERCISE_REGISTRY[exercise_type].items() if k != "predictor"},
+            "exercise_meta": public_exercise_registry()[exercise_type],
             "model_version": "prototype-v1",
             "load_ms": load_ms,
         })
@@ -795,7 +811,8 @@ def start_video_processing():
 
     video_processor = VideoProcessor(current_predictor)
     video_processor.start()
-    current_predictor.reset_counter()
+    if hasattr(current_predictor, "reset_counter"):
+        current_predictor.reset_counter()
 
     return jsonify({"success": True, "message": "Video processor started"})
 
@@ -871,7 +888,8 @@ def reset_counter():
     if not current_predictor:
         return jsonify({"success": False, "error": "No model loaded"}), 400
 
-    current_predictor.reset_counter()
+    if hasattr(current_predictor, "reset_counter"):
+        current_predictor.reset_counter()
     return jsonify({"success": True, "message": "Rep counter reset", "rep_count": 0})
 
 
@@ -881,7 +899,7 @@ def health_check():
         "status": "healthy",
         "model_loaded": current_predictor is not None,
         "exercise_type": current_predictor.exercise_type if current_predictor else None,
-        "rep_count": current_predictor.get_rep_count() if current_predictor else 0,
+        "rep_count": current_predictor.get_rep_count() if current_predictor and hasattr(current_predictor, "get_rep_count") else 0,
         "video_processor_active": video_processor is not None,
         "session_store": os.path.exists(DB_PATH),
         "available_exercises": list(EXERCISE_REGISTRY.keys()),
