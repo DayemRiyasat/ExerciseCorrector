@@ -108,4 +108,4 @@ class VideoProcessor:
                 continue
             except Exception as e:
                 print(f"Error processing frame: {e}")
-                continue 
+                continue
