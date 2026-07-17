@@ -1,5 +1,5 @@
 # exercises/lunge/LungePredictor.py
-# Location: project_root/exercises/lunge/LungePredictor.py
+# Location: project_root/exercises/lunge/LungePredictor.py 
 
 from base_predictor import ExercisePredictor
 from exercises.lunge.RepCounter import LungeRepCounter
