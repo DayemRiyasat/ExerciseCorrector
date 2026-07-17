@@ -1,4 +1,4 @@
-# exercises/pushup/PushupPredictor.py
+# exercises/pushup/PushupPredictor.py 
 
 from base_predictor import ExercisePredictor
 from exercises.pushup.RepCounter import PushupRepCounter
