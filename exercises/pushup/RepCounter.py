@@ -130,11 +130,12 @@ class PushupRepCounter:
                         if current_time - self.last_rep_time >= self.min_rep_interval:
                             avg_form_quality = np.mean(self.form_scores) if self.form_scores else 0
                             
-                            # Count rep if form is good enough
-                            if avg_form_quality >= (1 - self.form_threshold):
-                                self.rep_count += 1
-                                rep_counted = True
-                                self.last_rep_time = current_time
+                            # Count the rep once the movement completes. Form quality
+                            # is reported separately (and used for scoring); it must
+                            # not gate rep counting, otherwise imperfect reps show 0.
+                            self.rep_count += 1
+                            rep_counted = True
+                            self.last_rep_time = current_time
                         
                         self.state = "up"
                         self.lowest_angle = 180
