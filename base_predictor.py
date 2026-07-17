@@ -10,11 +10,87 @@ from pathlib import Path
 import cv2
 import joblib
 import numpy as np
-import tensorflow as tf
+
+# TensorFlow is deliberately NOT imported at module level. It is a ~1.2 GB
+# install and is only needed to load a Keras .h5 file. On the server we load a
+# converted .tflite model through a small runtime instead. TensorFlow is only
+# imported lazily, as a local-development fallback, inside load_model().
 
 
 class MediaPipeUnavailableError(RuntimeError):
     """Raised when the installed MediaPipe package does not expose pose utilities."""
+
+
+class ModelBackendUnavailableError(RuntimeError):
+    """Raised when no TFLite runtime and no TensorFlow install can load a model."""
+
+
+def _get_tflite_interpreter_class():
+    """Return a TFLite Interpreter class from whichever runtime is installed.
+
+    Preference order, smallest install first:
+      1. tflite-runtime      (a few MB, the right choice for deployment)
+      2. ai-edge-litert      (Google's newer name for the same runtime)
+      3. tensorflow.lite     (only if the full TensorFlow is already present)
+    """
+    try:
+        from tflite_runtime.interpreter import Interpreter
+        return Interpreter
+    except Exception:
+        pass
+
+    try:
+        from ai_edge_litert.interpreter import Interpreter
+        return Interpreter
+    except Exception:
+        pass
+
+    try:
+        import tensorflow as tf
+        return tf.lite.Interpreter
+    except Exception:
+        return None
+
+
+class TFLiteModel:
+    """Wraps a .tflite model so it exposes the same predict() call as Keras.
+
+    This means predict() in ExercisePredictor does not need to know or care
+    which backend loaded the model.
+    """
+
+    def __init__(self, model_path):
+        interpreter_cls = _get_tflite_interpreter_class()
+        if interpreter_cls is None:
+            raise ModelBackendUnavailableError(
+                "No TFLite runtime found. Install one with: "
+                "python -m pip install tflite-runtime"
+            )
+        self.interpreter = interpreter_cls(model_path=str(model_path))
+        self.interpreter.allocate_tensors()
+
+    def predict(self, features, verbose=0):
+        """Run inference. Signature matches keras.Model.predict for drop-in use."""
+        batch = np.asarray(features, dtype=np.float32)
+        if batch.ndim == 1:
+            batch = batch.reshape(1, -1)
+
+        input_details = self.interpreter.get_input_details()[0]
+
+        # The converted model has a fixed batch size of 1. Resize if a caller
+        # ever passes a different batch shape.
+        if tuple(input_details["shape"]) != batch.shape:
+            self.interpreter.resize_tensor_input(input_details["index"], list(batch.shape))
+            self.interpreter.allocate_tensors()
+            input_details = self.interpreter.get_input_details()[0]
+
+        self.interpreter.set_tensor(
+            input_details["index"], batch.astype(input_details["dtype"])
+        )
+        self.interpreter.invoke()
+
+        output_details = self.interpreter.get_output_details()[0]
+        return np.array(self.interpreter.get_tensor(output_details["index"]))
 
 
 _MEDIAPIPE_CACHE = {
@@ -132,19 +208,35 @@ class ExercisePredictor:
             self._ensure_mediapipe()
 
             model_dir = PROJECT_ROOT / "exercises" / self.exercise_type / "models"
-            model_path = model_dir / f"{self.exercise_type}_model.h5"
+            tflite_path = model_dir / f"{self.exercise_type}_model.tflite"
+            keras_path = model_dir / f"{self.exercise_type}_model.h5"
             scaler_path = model_dir / f"{self.exercise_type}_scaler.pkl"
             encoder_path = model_dir / f"{self.exercise_type}_label_encoder.pkl"
 
-            required_paths = [model_path, scaler_path, encoder_path]
-            missing_paths = [str(path) for path in required_paths if not path.exists()]
+            missing_paths = [
+                str(path) for path in (scaler_path, encoder_path) if not path.exists()
+            ]
+            if not tflite_path.exists() and not keras_path.exists():
+                missing_paths.append(f"{tflite_path} (or {keras_path})")
             if missing_paths:
                 print(f"Model files not found for {self.exercise_type}: {missing_paths}")
                 return False
 
-            # These models are only used for inference. compile=False avoids
-            # Keras/HDF5 deserialization issues from older training environments.
-            self.model = tf.keras.models.load_model(str(model_path), compile=False)
+            # Prefer the .tflite model. It is what the server has, and it does
+            # not drag TensorFlow into the process.
+            if tflite_path.exists():
+                self.model = TFLiteModel(tflite_path)
+                print(f"Loaded TFLite model for {self.exercise_type}")
+            else:
+                # Local development fallback only. Never hit on the server,
+                # because the .tflite files are committed alongside the .h5 files.
+                import tensorflow as tf
+
+                # These models are only used for inference. compile=False avoids
+                # Keras/HDF5 deserialization issues from older training environments.
+                self.model = tf.keras.models.load_model(str(keras_path), compile=False)
+                print(f"Loaded Keras model for {self.exercise_type} (TensorFlow fallback)")
+
             self.scaler = joblib.load(str(scaler_path))
             self.label_encoder = joblib.load(str(encoder_path))
 
@@ -159,6 +251,9 @@ class ExercisePredictor:
             print(f"Model loaded successfully: {self.exercise_type}")
             return True
         except MediaPipeUnavailableError as exc:
+            print(str(exc))
+            return False
+        except ModelBackendUnavailableError as exc:
             print(str(exc))
             return False
         except Exception as exc:

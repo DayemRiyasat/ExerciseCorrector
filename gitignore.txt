@@ -1,0 +1,25 @@
+# Runtime database. Each environment builds its own via init_database().
+# Committing this file causes merge conflicts on every deploy.
+data/*.db
+data/*.db-journal
+
+# Runtime upload directory, recreated on startup by os.makedirs().
+uploads/
+
+# Python bytecode. You currently have cpython-311 and cpython-313 .pyc files
+# committed, which is noise at best and confusing at worst.
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Large test media. Keep these off the server.
+testing data/
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store

@@ -1,9 +1,14 @@
+# Server / deployment requirements (PythonAnywhere).
+# TensorFlow is intentionally absent. It is ~1.2 GB installed and was only ever
+# used for one call: tf.keras.models.load_model(). The models are converted to
+# .tflite and loaded with tflite-runtime instead, which is a few MB.
+# For local development and retraining, use requirements-dev.txt.
 flask==3.1.2
 joblib==1.4.2
 mediapipe>=0.10.14,<0.11
 numpy==1.26.4
 opencv-python-headless==4.11.0.86
 pillow==10.1.0
-tensorflow==2.18.0
+tflite-runtime==2.14.0
 tqdm==4.67.1
 werkzeug==3.1.3
